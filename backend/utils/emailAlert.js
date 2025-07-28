@@ -1,29 +1,21 @@
-const nodemailer = require('nodemailer');
+const express = require('express');
+const router = express.Router();
+const sendEmailAlert = require('../utils/emailAlert');
 
-const sendEmailAlert = async ({ subject, body, recipient }) => {
-  try {
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER,         // your Gmail address
-        pass: process.env.EMAIL_PASSWORD,     // your Gmail app password
-      },
-    });
+router.post('/send-email', async (req, res) => {
+  const { subject, body, recipient } = req.body;
 
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: recipient,
-      subject: subject || 'Shipment Notification',
-      text: body || '',
-    };
-
-    const info = await transporter.sendMail(mailOptions);
-    console.log('✅ Email sent:', info.response);
-    return { success: true };
-  } catch (error) {
-    console.error('❌ Error sending email:', error);
-    return { success: false, error };
+  if (!recipient) {
+    return res.status(400).json({ error: 'Missing recipient email' });
   }
-};
 
-module.exports = sendEmailAlert;
+  const result = await sendEmailAlert({ subject, body, recipient });
+
+  if (result.success) {
+    return res.status(200).json({ message: 'Email sent successfully' });
+  } else {
+    return res.status(500).json({ error: 'Failed to send email' });
+  }
+});
+
+module.exports = router;
